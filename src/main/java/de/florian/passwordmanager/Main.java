@@ -48,7 +48,6 @@ public class Main {
             ctx.status(200);
         });
 
-
         app.post("/register/<email>/<password>", ctx -> {
             ctx.result(addAccount(ctx.pathParam("email"), ctx.pathParam("password")));
         });
