@@ -9,6 +9,7 @@ public class Account {
     public int accountId;
     public ArrayList<String> notes = new ArrayList<>();
     public ArrayList<String[] > passwords = new ArrayList<>();
+    public String sessionKey;
 
 
     public Account(String email, String password, int accountId) {
