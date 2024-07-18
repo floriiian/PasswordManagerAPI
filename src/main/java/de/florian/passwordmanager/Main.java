@@ -10,11 +10,8 @@ import io.javalin.Javalin;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.sql.Array;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -38,7 +35,6 @@ public class Main {
             });
         }).start(7070);
 
-
         app.post("/register", _ -> {
             throw new BadRequestResponse("Insufficient credentials");
         });
@@ -46,16 +42,26 @@ public class Main {
             throw new BadRequestResponse("Insufficient credentials");
         });
 
+        app.post("/logout", ctx -> {
+            ctx.cookieStore().clear();
+            ctx.result("LOGGED_OUT");
+            ctx.status(200);
+        });
+
+
         app.post("/register/<email>/<password>", ctx -> {
             ctx.result(addAccount(ctx.pathParam("email"), ctx.pathParam("password")));
         });
         app.post("/login/<email>/<password>", ctx -> {
             String functionResponse = handleLogin(ctx.pathParam("email"), ctx.pathParam("password"));
-            String response = functionResponse.split(":")[0];
+            String response = functionResponse.split(":")[0].strip();
             String sessionKey = functionResponse.split(":")[1].strip();
 
             ctx.result(response);
-            ctx.cookieStore().set("sessionKey", sessionKey);
+            if(response.equals("SUCCESSFUL_LOGIN")){
+                ctx.cookieStore().set("sessionKey", sessionKey);
+                LOGGER.debug("User {} logged in", ctx.pathParam("email"));
+            }
         });
     }
 
@@ -69,16 +75,16 @@ public class Main {
         }
         for (Account account : accounts){
             if (account.email.equals(email) && encoder().matches(password, account.password)){
+
                 byte[] key = new byte[32];
                 SecureRandom.getInstanceStrong().nextBytes(key);
-
                 String base64Key = Base64.getEncoder().encodeToString(key);
                 account.sessionKey = base64Key;
 
                 return "SUCCESSFUL_LOGIN : " + base64Key;
             }
         }
-        return "CREDENTIALS_INVALID";
+        return "CREDENTIALS_INVALID : ";
     }
 
 
