@@ -1,6 +1,5 @@
 package de.florian.passwordmanager;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -29,9 +28,13 @@ public class Main {
     public static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
 
-    public static String[] staticSites = {"/register", "/login", "/add_password"};
+    private static final String LOWER = "abcdefghijklmnopqrstuvwxyz";
+    private static final String UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final String DIGITS = "0123456789";
+    private static final String PUNCTUATION = "!@#$%&*()_+-=[]|,./?><";
 
-    public static ArrayList<Account> accounts = new ArrayList<Account>();
+    public static String[] staticSites = {"/register", "/login", "/add_password", "/"};
+    public static ArrayList<Account> accounts = new ArrayList<>();
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
 
@@ -47,6 +50,9 @@ public class Main {
             });
         }
 
+        app.post("/generate/<parameters>", ctx -> {
+           ctx.result(generatePassword(ctx.pathParam("parameters")));
+        });
 
         app.post("/passwords", ctx -> {
             if (isLoggedIn(ctx)){
@@ -74,7 +80,8 @@ public class Main {
 
         app.post("/add_note/<note>", ctx -> {
             if (isLoggedIn(ctx)){
-                ctx.result(addNote(ctx.pathParam("note")), Integer.parseInt(ctx.cookieStore().get("id")));
+                ctx.result(addNote(ctx.pathParam("note"), Integer.parseInt(ctx.cookieStore().get("id"))));
+                return;
             }
             ctx.result("NOT_LOGGED_IN");
         });
@@ -84,17 +91,14 @@ public class Main {
         });
 
         app.post("/login/<email>/<password>", ctx -> {
-            String localSessionKey = ctx.cookieStore().get("sessionKey");
 
-            if (localSessionKey != null && !localSessionKey.isEmpty()){
-                for (Account account : accounts) {
-                    if (account.sessionKey.equals(localSessionKey)){
-                        ctx.result("ALREADY_LOGGED_IN");
-                        return;
-                    }
-                }
+            if (isLoggedIn(ctx)){
+                ctx.result("ALREADY_LOGGED_IN");
+                return;
             }
+
             String[] functionResponse = handleLogin(ctx.pathParam("email"), ctx.pathParam("password")).split(":");
+
             String response = functionResponse[0].strip();
             String sessionKey = functionResponse[1].strip();
             String id = functionResponse[2].strip();
@@ -128,7 +132,7 @@ public class Main {
 
         if (sessionKey != null && sessionKey.length() > 1 && id != null && !id.isEmpty()) {
             for (Account account : accounts) {
-                if (account.sessionKey.equals(sessionKey)) {
+                if (account.sessionKey != null && account.sessionKey.equals(sessionKey)) {
                     ctx.attribute("accountId", Integer.parseInt(id));
                     return true;
                 }
@@ -199,12 +203,12 @@ public class Main {
             return "CREDENTIALS_NULL : : ";
         }
         if (email.isEmpty() ||password.isEmpty()){
-            return "CREDENTIALS_EMPTY : :";
+            return "CREDENTIALS_EMPTY : : ";
         }
         for (Account account : accounts){
             if (account.email.equals(email) && encoder().matches(password, account.password)){
 
-                Integer id = account.accountId;
+                int id = account.accountId;
                 byte[] key = new byte[32];
                 SecureRandom.getInstanceStrong().nextBytes(key);
                 String base64Key = Base64.getEncoder().encodeToString(key);
@@ -213,7 +217,7 @@ public class Main {
                 return "SUCCESSFUL_LOGIN:" + base64Key + ":" + id;
             }
         }
-        return "CREDENTIALS_INVALID : ";
+        return "CREDENTIALS_INVALID : : ";
     }
 
 
@@ -235,6 +239,34 @@ public class Main {
         accounts.add(newAccount);
         LOGGER.debug("Account added with ID: {}", newAccount.accountId);
         return "SUCCESSFUL_REGISTRATION {" + newAccount.accountId + "}";
+    }
+
+    public static String generatePassword(String parameters){
+
+        int passwordLength = new Random().nextInt((20 - 10) + 1) + 10;
+        String password = "";
+        StringBuilder allowedChars = new StringBuilder();
+
+        if (parameters.toLowerCase().contains("l")) {
+            allowedChars.append(LOWER);
+        }
+        if (parameters.toLowerCase().contains("u")) {
+            allowedChars.append(UPPER);
+        }
+        if (parameters.toLowerCase().contains("d")) {
+            allowedChars.append(DIGITS);
+        }
+        if (parameters.toLowerCase().contains("p")) {
+            allowedChars.append(PUNCTUATION);
+        }
+
+        Random random = new Random();
+        int randomChar = random.nextInt(allowedChars.length());
+
+        while(password.length() < passwordLength){
+            password = password.concat(String.valueOf(allowedChars.charAt(randomChar)));
+        }
+        return password;
     }
 
     public static PasswordEncoder encoder() {
