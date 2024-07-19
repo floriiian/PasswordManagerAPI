@@ -53,6 +53,9 @@ public class Main {
         app.post("/generate/<parameters>", ctx -> {
            ctx.result(generatePassword(ctx.pathParam("parameters")));
         });
+        app.post("/generate", ctx -> {
+            ctx.result(generatePassword("ludp"));
+        });
 
         app.post("/passwords", ctx -> {
             if (isLoggedIn(ctx)){
