@@ -52,7 +52,7 @@ public class Main {
 
         app.post("/generate/<parameters>", ctx -> {
             String result = generatePassword(ctx.pathParam("parameters"));
-            if(result.isEmpty()){
+            if (result.isEmpty()){
                 JSONObject response = new JSONObject();
                 response.put("ERROR_TYPE","INVALID_PARAMETER").put("ERROR_MESSAGE","Available parameters: l,u,d,p");
                 ctx.result(String.valueOf(response));
@@ -276,7 +276,7 @@ public class Main {
         }
 
         Random random = new Random();
-        while(password.length() < passwordLength){
+        while (password.length() < passwordLength){
             password = password.concat(String.valueOf(allowedChars.charAt(random.nextInt(allowedChars.length()))));
         }
         return password;
