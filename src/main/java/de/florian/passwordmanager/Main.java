@@ -56,6 +56,14 @@ public class Main {
             ctx.result("NOT_LOGGED_IN");
         });
 
+        app.post("/notes", ctx -> {
+            if (isLoggedIn(ctx)){
+                ctx.result(getNotes(Integer.parseInt(ctx.cookieStore().get("id"))));
+                return;
+            }
+            ctx.result("NOT_LOGGED_IN");
+        });
+
         app.post("/add_password/<email>/<password>", ctx -> {
             if (isLoggedIn(ctx)){
                 ctx.result(addPassword(ctx.pathParam("email"), ctx.pathParam("password"), Integer.parseInt(ctx.cookieStore().get("id"))));
@@ -78,9 +86,9 @@ public class Main {
         app.post("/login/<email>/<password>", ctx -> {
             String localSessionKey = ctx.cookieStore().get("sessionKey");
 
-            if(localSessionKey != null && !localSessionKey.isEmpty()){
+            if (localSessionKey != null && !localSessionKey.isEmpty()){
                 for (Account account : accounts) {
-                    if(account.sessionKey.equals(localSessionKey)){
+                    if (account.sessionKey.equals(localSessionKey)){
                         ctx.result("ALREADY_LOGGED_IN");
                         return;
                     }
@@ -92,7 +100,7 @@ public class Main {
             String id = functionResponse[2].strip();
 
             ctx.result(response);
-            if(response.equals("SUCCESSFUL_LOGIN")){
+            if (response.equals("SUCCESSFUL_LOGIN")){
                 ctx.cookieStore().set("sessionKey", sessionKey);
                 ctx.cookieStore().set("id", id);
                 LOGGER.debug("User {} logged in", ctx.pathParam("email"));
@@ -103,7 +111,7 @@ public class Main {
             String sessionKey = ctx.cookieStore().get("sessionKey");
             if (sessionKey.length() > 1) {
                 for (Account account : accounts) {
-                    if(account.sessionKey.equals(sessionKey)){
+                    if (account.sessionKey.equals(sessionKey)){
                         account.sessionKey = "";
                     }
                 }
@@ -133,8 +141,8 @@ public class Main {
         JSONObject passwords = new JSONObject();
 
         for (Account account : accounts) {
-            if(account.accountId == id){
-                for(String[] password : account.passwords ){
+            if (account.accountId == id){
+                for (String[] password : account.passwords ){
                     passwords.put(password[0], password[1]);
                 }
             }
@@ -143,17 +151,32 @@ public class Main {
     }
 
 
+    public static String getNotes(int id){
+        JSONObject notes = new JSONObject();
+
+        for (Account account : accounts) {
+            if (account.accountId == id){
+                int i = 1;
+                for (String note : account.notes ){
+                    notes.put(String.valueOf(i), note);
+                    i++;
+                }
+            }
+        }
+        return notes.toString();
+    }
+
     public static String addNote(String note, Integer id){
         if (note == null || note.isEmpty() ){
             return "INPUT_EMPTY";
         }
         for (Account account : accounts) {
-            if(account.accountId == id){
+            if (account.accountId == id){
                 account.notes.add(note);
                 return "SUCCESSFUL_INSERT";
             }
         }
-
+        return "ERROR_INSERTING";
     }
 
     public static String addPassword(String email, String password, Integer id) {
@@ -166,7 +189,7 @@ public class Main {
                 return "SUCCESSFUL_INSERT";
             }
         }
-        return "ERROR";
+        return "ERROR_INSERTING";
     }
 
 
