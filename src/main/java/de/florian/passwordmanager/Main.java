@@ -64,17 +64,32 @@ public class Main {
             ctx.result("NOT_LOGGED_IN");
         });
 
+        app.post("/add_note/<note>", ctx -> {
+            if (isLoggedIn(ctx)){
+                ctx.result(addNote(ctx.pathParam("note")), Integer.parseInt(ctx.cookieStore().get("id")));
+            }
+            ctx.result("NOT_LOGGED_IN");
+        });
+
         app.post("/register/<email>/<password>", ctx -> {
             ctx.result(addAccount(ctx.pathParam("email"), ctx.pathParam("password")));
         });
 
         app.post("/login/<email>/<password>", ctx -> {
+            String localSessionKey = ctx.cookieStore().get("sessionKey");
+
+            if(localSessionKey != null && !localSessionKey.isEmpty()){
+                for (Account account : accounts) {
+                    if(account.sessionKey.equals(localSessionKey)){
+                        ctx.result("ALREADY_LOGGED_IN");
+                        return;
+                    }
+                }
+            }
             String[] functionResponse = handleLogin(ctx.pathParam("email"), ctx.pathParam("password")).split(":");
             String response = functionResponse[0].strip();
             String sessionKey = functionResponse[1].strip();
             String id = functionResponse[2].strip();
-
-            // TODO: Check if already logged in.
 
             ctx.result(response);
             if(response.equals("SUCCESSFUL_LOGIN")){
@@ -128,11 +143,21 @@ public class Main {
     }
 
 
-    public static String addPassword(String email, String password, Integer id) {
-        if (email == null || password == null){
-            return "INPUT_NULL";
+    public static String addNote(String note, Integer id){
+        if (note == null || note.isEmpty() ){
+            return "INPUT_EMPTY";
         }
-        if (email.isEmpty() ||password.isEmpty()){
+        for (Account account : accounts) {
+            if(account.accountId == id){
+                account.notes.add(note);
+                return "SUCCESSFUL_INSERT";
+            }
+        }
+
+    }
+
+    public static String addPassword(String email, String password, Integer id) {
+        if (email == null || password == null || email.isEmpty() || password.isEmpty()){
             return "INPUT_EMPTY";
         }
         for (Account account : accounts) {
