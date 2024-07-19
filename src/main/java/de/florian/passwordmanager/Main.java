@@ -1,21 +1,23 @@
 package de.florian.passwordmanager;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.Context;
 import io.javalin.plugin.bundled.CorsPluginConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import io.javalin.Javalin;
+import org.json.JSONObject;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.lang.reflect.Array;
-import java.net.CookieStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.regex.Pattern;
+
 
 public class Main {
 
@@ -46,16 +48,20 @@ public class Main {
         }
 
 
-        app.post("/add_password/<email>/<password>", ctx -> {
-            String sessionKey = ctx.cookieStore().get("sessionKey");
-            String id = ctx.cookieStore().get("id");
-            if (sessionKey != null && sessionKey.length() > 1 && id != null && id.length() > 1) {
-                for (Account account : accounts) {
-                    if(account.sessionKey.equals(sessionKey)){
-                        ctx.result(addPassword(ctx.pathParam("email"), ctx.pathParam("password"),  Integer.parseInt(id)));
-                    }
-                }
+        app.post("/passwords", ctx -> {
+            if (isLoggedIn(ctx)){
+                ctx.result(getPasswords(Integer.parseInt(ctx.cookieStore().get("id"))));
+                return;
             }
+            ctx.result("NOT_LOGGED_IN");
+        });
+
+        app.post("/add_password/<email>/<password>", ctx -> {
+            if (isLoggedIn(ctx)){
+                ctx.result(addPassword(ctx.pathParam("email"), ctx.pathParam("password"), Integer.parseInt(ctx.cookieStore().get("id"))));
+                return;
+            }
+            ctx.result("NOT_LOGGED_IN");
         });
 
         app.post("/register/<email>/<password>", ctx -> {
@@ -67,6 +73,8 @@ public class Main {
             String response = functionResponse[0].strip();
             String sessionKey = functionResponse[1].strip();
             String id = functionResponse[2].strip();
+
+            // TODO: Check if already logged in.
 
             ctx.result(response);
             if(response.equals("SUCCESSFUL_LOGIN")){
@@ -91,19 +99,49 @@ public class Main {
         });
     }
 
+    private static boolean isLoggedIn(Context ctx) {
+        String sessionKey = ctx.cookieStore().get("sessionKey");
+        String id = ctx.cookieStore().get("id");
+
+        if (sessionKey != null && sessionKey.length() > 1 && id != null && !id.isEmpty()) {
+            for (Account account : accounts) {
+                if (account.sessionKey.equals(sessionKey)) {
+                    ctx.attribute("accountId", Integer.parseInt(id));
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static String getPasswords(int id){
+        JSONObject passwords = new JSONObject();
+
+        for (Account account : accounts) {
+            if(account.accountId == id){
+                for(String[] password : account.passwords ){
+                    passwords.put(password[0], password[1]);
+                }
+            }
+        }
+        return passwords.toString();
+    }
+
+
     public static String addPassword(String email, String password, Integer id) {
         if (email == null || password == null){
-            return "INPUT_NULL :";
+            return "INPUT_NULL";
         }
         if (email.isEmpty() ||password.isEmpty()){
-            return "INPUT_EMPTY :";
+            return "INPUT_EMPTY";
         }
         for (Account account : accounts) {
             if (account.accountId == id){
-                account.passwords.add(new String[]{"florian@gmail.com", "aasdasasd"});
+                account.passwords.add(new String[]{email, password});
+                return "SUCCESSFUL_INSERT";
             }
         }
-
+        return "ERROR";
     }
 
 
