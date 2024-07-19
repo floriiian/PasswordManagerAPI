@@ -264,10 +264,8 @@ public class Main {
         }
 
         Random random = new Random();
-        int randomChar = random.nextInt(allowedChars.length());
-
         while(password.length() < passwordLength){
-            password = password.concat(String.valueOf(allowedChars.charAt(randomChar)));
+            password = password.concat(String.valueOf(allowedChars.charAt(random.nextInt(allowedChars.length()))));
         }
         return password;
     }
