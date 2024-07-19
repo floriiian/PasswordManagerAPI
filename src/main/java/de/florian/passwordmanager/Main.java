@@ -11,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.lang.reflect.Array;
+import java.net.CookieStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
@@ -45,26 +46,41 @@ public class Main {
         }
 
 
+        app.post("/add_password/<email>/<password>", ctx -> {
+            String sessionKey = ctx.cookieStore().get("sessionKey");
+            String id = ctx.cookieStore().get("id");
+            if (sessionKey != null && sessionKey.length() > 1 && id != null && id.length() > 1) {
+                for (Account account : accounts) {
+                    if(account.sessionKey.equals(sessionKey)){
+                        ctx.result(addPassword(ctx.pathParam("email"), ctx.pathParam("password"),  Integer.parseInt(id)));
+                    }
+                }
+            }
+        });
+
         app.post("/register/<email>/<password>", ctx -> {
             ctx.result(addAccount(ctx.pathParam("email"), ctx.pathParam("password")));
         });
+
         app.post("/login/<email>/<password>", ctx -> {
-            String functionResponse = handleLogin(ctx.pathParam("email"), ctx.pathParam("password"));
-            String response = functionResponse.split(":")[0].strip();
-            String sessionKey = functionResponse.split(":")[1].strip();
+            String[] functionResponse = handleLogin(ctx.pathParam("email"), ctx.pathParam("password")).split(":");
+            String response = functionResponse[0].strip();
+            String sessionKey = functionResponse[1].strip();
+            String id = functionResponse[2].strip();
 
             ctx.result(response);
             if(response.equals("SUCCESSFUL_LOGIN")){
                 ctx.cookieStore().set("sessionKey", sessionKey);
+                ctx.cookieStore().set("id", id);
                 LOGGER.debug("User {} logged in", ctx.pathParam("email"));
             }
         });
 
         app.post("/logout", ctx -> {
-            String cookie = ctx.cookieStore().get("sessionKey");
-            if (cookie.length() > 1) {
+            String sessionKey = ctx.cookieStore().get("sessionKey");
+            if (sessionKey.length() > 1) {
                 for (Account account : accounts) {
-                    if(account.sessionKey.equals(cookie)){
+                    if(account.sessionKey.equals(sessionKey)){
                         account.sessionKey = "";
                     }
                 }
@@ -75,17 +91,18 @@ public class Main {
         });
     }
 
-    public static String addPassword(String email, String password) {
+    public static String addPassword(String email, String password, Integer id) {
         if (email == null || password == null){
-            return "INPUT_NULL : ";
+            return "INPUT_NULL :";
         }
         if (email.isEmpty() ||password.isEmpty()){
-            return "INPUT_EMPTY : ";
+            return "INPUT_EMPTY :";
         }
         for (Account account : accounts) {
-           // if (account.sessionKey)
+            if (account.accountId == id){
+                account.passwords.add(new String[]{"florian@gmail.com", "aasdasasd"});
+            }
         }
-        return "";
 
     }
 
@@ -93,20 +110,21 @@ public class Main {
     public static String handleLogin(String email, String password) throws NoSuchAlgorithmException {
 
         if (email == null || password == null){
-            return "CREDENTIALS_NULL : ";
+            return "CREDENTIALS_NULL : : ";
         }
         if (email.isEmpty() ||password.isEmpty()){
-            return "CREDENTIALS_EMPTY : ";
+            return "CREDENTIALS_EMPTY : :";
         }
         for (Account account : accounts){
             if (account.email.equals(email) && encoder().matches(password, account.password)){
 
+                Integer id = account.accountId;
                 byte[] key = new byte[32];
                 SecureRandom.getInstanceStrong().nextBytes(key);
                 String base64Key = Base64.getEncoder().encodeToString(key);
                 account.sessionKey = base64Key;
 
-                return "SUCCESSFUL_LOGIN : " + base64Key;
+                return "SUCCESSFUL_LOGIN:" + base64Key + ":" + id;
             }
         }
         return "CREDENTIALS_INVALID : ";
