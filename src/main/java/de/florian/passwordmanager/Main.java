@@ -10,6 +10,7 @@ import io.javalin.Javalin;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.lang.reflect.Array;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
@@ -25,6 +26,8 @@ public class Main {
     public static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
 
+    public static String[] staticSites = {"/register", "/login", "/add_password"};
+
     public static ArrayList<Account> accounts = new ArrayList<Account>();
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
@@ -35,18 +38,12 @@ public class Main {
             });
         }).start(7070);
 
-        app.post("/register", _ -> {
-            throw new BadRequestResponse("Insufficient credentials");
-        });
-        app.post("/login", _ -> {
-            throw new BadRequestResponse("Insufficient credentials");
-        });
+        for (String site : staticSites) {
+            app.post(site, _ ->  {
+                throw new BadRequestResponse("Insufficient credentials");
+            });
+        }
 
-        app.post("/logout", ctx -> {
-            ctx.cookieStore().clear();
-            ctx.result("LOGGED_OUT");
-            ctx.status(200);
-        });
 
         app.post("/register/<email>/<password>", ctx -> {
             ctx.result(addAccount(ctx.pathParam("email"), ctx.pathParam("password")));
@@ -62,7 +59,36 @@ public class Main {
                 LOGGER.debug("User {} logged in", ctx.pathParam("email"));
             }
         });
+
+        app.post("/logout", ctx -> {
+            String cookie = ctx.cookieStore().get("sessionKey");
+            if (cookie.length() > 1) {
+                for (Account account : accounts) {
+                    if(account.sessionKey.equals(cookie)){
+                        account.sessionKey = "";
+                    }
+                }
+            }
+            ctx.cookieStore().clear();
+            ctx.result("LOGGED_OUT");
+            ctx.status(200);
+        });
     }
+
+    public static String addPassword(String email, String password) {
+        if (email == null || password == null){
+            return "INPUT_NULL : ";
+        }
+        if (email.isEmpty() ||password.isEmpty()){
+            return "INPUT_EMPTY : ";
+        }
+        for (Account account : accounts) {
+           // if (account.sessionKey)
+        }
+        return "";
+
+    }
+
 
     public static String handleLogin(String email, String password) throws NoSuchAlgorithmException {
 
