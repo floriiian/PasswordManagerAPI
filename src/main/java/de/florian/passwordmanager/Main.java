@@ -7,6 +7,8 @@ import io.javalin.plugin.bundled.CorsPluginConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.servlet.http.Cookie;
+
 import io.javalin.Javalin;
 import org.json.JSONObject;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -57,7 +59,6 @@ public class Main {
                 response.put("ERROR_TYPE","INVALID_PARAMETER").put("ERROR_MESSAGE","Available parameters: l,u,d,p");
                 ctx.result(String.valueOf(response));
                 return;
-
             }
             ctx.result(result);
         });
@@ -66,33 +67,47 @@ public class Main {
         });
 
         app.post("/passwords", ctx -> {
-            if (isLoggedIn(ctx)){
-                ctx.result(getPasswords(Integer.parseInt(ctx.cookieStore().get("id"))));
-                return;
+            String id = ctx.cookie("id");
+            if (isLoggedIn(ctx)) {
+                if (id != null) {
+                    ctx.result(getPasswords(Integer.parseInt(id)));
+                    return;
+                }
             }
             ctx.result("NOT_LOGGED_IN");
         });
 
         app.post("/notes", ctx -> {
+
             if (isLoggedIn(ctx)){
-                ctx.result(getNotes(Integer.parseInt(ctx.cookieStore().get("id"))));
-                return;
+                String id = ctx.cookie("id");
+                if (id != null) {
+                    ctx.result(getNotes(Integer.parseInt(id)));
+                    return;
+                }
             }
             ctx.result("NOT_LOGGED_IN");
         });
 
         app.post("/add_password/<email>/<password>", ctx -> {
+
             if (isLoggedIn(ctx)){
-                ctx.result(addPassword(ctx.pathParam("email"), ctx.pathParam("password"), Integer.parseInt(ctx.cookieStore().get("id"))));
-                return;
+                String id = ctx.cookie("id");
+                if (id != null) {
+                    ctx.result(addPassword(ctx.pathParam("email"), ctx.pathParam("password"), Integer.valueOf(id)));
+                    return;
+                }
             }
             ctx.result("NOT_LOGGED_IN");
         });
 
         app.post("/add_note/<note>", ctx -> {
             if (isLoggedIn(ctx)){
-                ctx.result(addNote(ctx.pathParam("note"), Integer.parseInt(ctx.cookieStore().get("id"))));
-                return;
+                String id = ctx.cookie("id");
+                if (id != null) {
+                    ctx.result(addNote(ctx.pathParam("note"), Integer.valueOf(id)));
+                    return;
+                }
             }
             ctx.result("NOT_LOGGED_IN");
         });
@@ -116,14 +131,29 @@ public class Main {
 
             ctx.result(response);
             if (response.equals("SUCCESSFUL_LOGIN")){
-                ctx.cookieStore().set("sessionKey", sessionKey);
-                ctx.cookieStore().set("id", id);
+
+                Cookie sessionKeyCookie = new Cookie("sessionKey", sessionKey);
+                sessionKeyCookie.setHttpOnly(true);
+                sessionKeyCookie.setSecure(true);
+                sessionKeyCookie.setPath("/");
+
+                Cookie idCookie = new Cookie("id", id);
+                idCookie.setHttpOnly(true);
+                idCookie.setSecure(true);
+                idCookie.setPath("/");
+
+                ctx.res().addCookie(sessionKeyCookie);
+                ctx.res().addCookie(idCookie);
+
                 LOGGER.debug("User {} logged in", ctx.pathParam("email"));
             }
         });
 
         app.post("/logout", ctx -> {
-            String sessionKey = ctx.cookieStore().get("sessionKey");
+            String sessionKey = ctx.cookie("sessionKey");
+            if(sessionKey == null){
+                return;
+            }
             if (sessionKey.length() > 1) {
                 for (Account account : accounts) {
                     if (account.sessionKey.equals(sessionKey)){
@@ -131,15 +161,24 @@ public class Main {
                     }
                 }
             }
-            ctx.cookieStore().clear();
+
+            Cookie sessionKeyCookie = new Cookie("sessionKey", null);
+            sessionKeyCookie.setMaxAge(0);
+            ctx.res().addCookie(sessionKeyCookie);
+
+            Cookie idCookie = new Cookie("id", null);
+            idCookie.setMaxAge(0);
+            ctx.res().addCookie(idCookie);
+
             ctx.result("LOGGED_OUT");
             ctx.status(200);
         });
     }
 
     private static boolean isLoggedIn(Context ctx) {
-        String sessionKey = ctx.cookieStore().get("sessionKey");
-        String id = ctx.cookieStore().get("id");
+
+        String sessionKey = ctx.cookie("sessionKey");
+        String id = ctx.cookie("id");
 
         if (sessionKey != null && sessionKey.length() > 1 && id != null && !id.isEmpty()) {
             for (Account account : accounts) {
