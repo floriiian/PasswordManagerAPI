@@ -190,7 +190,7 @@ public class Main {
     }
 
     public static String getPasswords(int id){
-        JSONObject passwords = new JSONObject();#
+        JSONObject passwords = new JSONObject();
         for (Account account : accounts) {
             if (account.accountId == id){
                 for (String[] password : account.passwords ){
@@ -279,6 +279,12 @@ public class Main {
         }
         if (!PASSWORD_PATTERN.matcher(password).matches()){
             return "WEAK_PASSWORD";
+        }
+
+        for (Account account : accounts){
+            if (account.email.equals(email)){
+                return "ALREADY_REGISTERED";
+            }
         }
 
         Account newAccount = new Account(email, encoder().encode(password), accounts.size() + 1);
