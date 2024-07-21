@@ -62,6 +62,7 @@ public class Main {
             }
             ctx.result(result);
         });
+
         app.post("/generate", ctx -> {
             ctx.result(generatePassword("ludp"));
         });
@@ -78,7 +79,6 @@ public class Main {
         });
 
         app.post("/notes", ctx -> {
-
             if (isLoggedIn(ctx)){
                 String id = ctx.cookie("id");
                 if (id != null) {
@@ -90,7 +90,6 @@ public class Main {
         });
 
         app.post("/add_password/<email>/<password>", ctx -> {
-
             if (isLoggedIn(ctx)){
                 String id = ctx.cookie("id");
                 if (id != null) {
@@ -117,7 +116,6 @@ public class Main {
         });
 
         app.post("/login/<email>/<password>", ctx -> {
-
             if (isLoggedIn(ctx)){
                 ctx.result("ALREADY_LOGGED_IN");
                 return;
@@ -129,7 +127,6 @@ public class Main {
             String sessionKey = functionResponse[1].strip();
             String id = functionResponse[2].strip();
 
-            ctx.result(response);
             if (response.equals("SUCCESSFUL_LOGIN")){
 
                 Cookie sessionKeyCookie = new Cookie("sessionKey", sessionKey);
@@ -147,11 +144,13 @@ public class Main {
 
                 LOGGER.debug("User {} logged in", ctx.pathParam("email"));
             }
+            ctx.result(response);
         });
 
         app.post("/logout", ctx -> {
             String sessionKey = ctx.cookie("sessionKey");
-            if(sessionKey == null){
+
+            if (sessionKey == null){
                 return;
             }
             if (sessionKey.length() > 1) {
@@ -176,7 +175,6 @@ public class Main {
     }
 
     private static boolean isLoggedIn(Context ctx) {
-
         String sessionKey = ctx.cookie("sessionKey");
         String id = ctx.cookie("id");
 
@@ -192,8 +190,7 @@ public class Main {
     }
 
     public static String getPasswords(int id){
-        JSONObject passwords = new JSONObject();
-
+        JSONObject passwords = new JSONObject();#
         for (Account account : accounts) {
             if (account.accountId == id){
                 for (String[] password : account.passwords ){
@@ -207,7 +204,6 @@ public class Main {
 
     public static String getNotes(int id){
         JSONObject notes = new JSONObject();
-
         for (Account account : accounts) {
             if (account.accountId == id){
                 int i = 1;
