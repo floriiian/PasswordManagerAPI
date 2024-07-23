@@ -23,8 +23,6 @@ import java.util.regex.Pattern;
 public class Main {
 
     public static final Logger LOGGER = LogManager.getLogger();
-    public static final ObjectMapper MAPPER = new ObjectMapper();
-
     public static final Pattern PASSWORD_PATTERN = Pattern.compile(
             "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$");
     public static final Pattern EMAIL_PATTERN = Pattern.compile(
@@ -38,13 +36,11 @@ public class Main {
     public static String[] staticSites = {"/register", "/login", "/add_password", "/"};
     public static ArrayList<Account> accounts = new ArrayList<>();
 
-    public static void main(String[] args) throws NoSuchAlgorithmException {
+    public static void main() {
 
-        Javalin app = Javalin.create(config -> {
-            config.bundledPlugins.enableCors(cors -> {
-                cors.addRule(CorsPluginConfig.CorsRule::anyHost);
-            });
-        }).start(7070);
+        Javalin app = Javalin.create(config -> config.bundledPlugins.enableCors(cors -> {
+            cors.addRule(CorsPluginConfig.CorsRule::anyHost);
+        })).start(7070);
 
         for (String site : staticSites) {
             app.post(site, _ ->  {
@@ -63,9 +59,7 @@ public class Main {
             ctx.result(result);
         });
 
-        app.post("/generate", ctx -> {
-            ctx.result(generatePassword("ludp"));
-        });
+        app.post("/generate", ctx -> ctx.result(generatePassword("ludp")));
 
         app.post("/passwords", ctx -> {
             String id = ctx.cookie("id");
@@ -122,9 +116,7 @@ public class Main {
             ctx.result("NOT_LOGGED_IN");
         });
 
-        app.post("/register/<email>/<password>", ctx -> {
-            ctx.result(addAccount(ctx.pathParam("email"), ctx.pathParam("password")));
-        });
+        app.post("/register/<email>/<password>", ctx -> ctx.result(addAccount(ctx.pathParam("email"), ctx.pathParam("password"))));
 
         app.post("/login/<email>/<password>", ctx -> {
             if (isLoggedIn(ctx)){
