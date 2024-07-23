@@ -89,11 +89,11 @@ public class Main {
             ctx.result("NOT_LOGGED_IN");
         });
 
-        app.post("/add_password/<email>/<password>", ctx -> {
+        app.post("/add_password/<username>/<password>/<website>", ctx -> {
             if (isLoggedIn(ctx)){
                 String id = ctx.cookie("id");
                 if (id != null) {
-                    ctx.result(addPassword(ctx.pathParam("email"), ctx.pathParam("password"), Integer.valueOf(id)));
+                    ctx.result(addPassword(ctx.pathParam("username"), ctx.pathParam("password"), ctx.pathParam("website"), Integer.valueOf(id)));
                     return;
                 }
             }
@@ -193,8 +193,11 @@ public class Main {
         JSONObject passwords = new JSONObject();
         for (Account account : accounts) {
             if (account.accountId == id){
-                for (String[] password : account.passwords ){
-                    passwords.put(password[0], password[1]);
+                for (Password password : account.passwords ){
+                    passwords.put("username", password.username);
+                    passwords.put("password", password.password);
+                    passwords.put("website", password.website);
+                    passwords.put("created", String.valueOf(password.creation_time));
                 }
             }
         }
@@ -229,13 +232,15 @@ public class Main {
         return "ERROR_INSERTING";
     }
 
-    public static String addPassword(String email, String password, Integer id) {
-        if (email == null || password == null || email.isEmpty() || password.isEmpty()){
+    public static String addPassword(String username, String password, String website, Integer id) {
+        if (username == null || password == null || username.isEmpty() || password.isEmpty()){
             return "INPUT_EMPTY";
+        }if(website == null || website.isEmpty()){
+            website = null;
         }
         for (Account account : accounts) {
             if (account.accountId == id){
-                account.passwords.add(new String[]{email, password});
+                account.addPassword(username, password, website);
                 return "SUCCESSFUL_INSERT";
             }
         }

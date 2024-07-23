@@ -8,7 +8,7 @@ public class Account {
     public String password;
     public int accountId;
     public ArrayList<String> notes = new ArrayList<>();
-    public ArrayList<String[] > passwords = new ArrayList<>();
+    public ArrayList<Password > passwords = new ArrayList<>();
     public String sessionKey;
 
 
@@ -22,7 +22,7 @@ public class Account {
         notes.add(note);
     }
 
-    public void addPassword(String email, String password) {
-        passwords.add(new String[]{email, password});
+    public void addPassword(String email, String password,String website) {
+        passwords.add(new Password(email, password, website));
     }
 }
