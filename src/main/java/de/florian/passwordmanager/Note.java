@@ -3,17 +3,13 @@ package de.florian.passwordmanager;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class Password {
+public class Note {
 
-    public String username;
-    public String password;
-    public String website;
+    public String note;
     public String creation_time;
 
-    public Password(String username, String password, String website) {
-        this.username = username;
-        this.password = password;
-        this.website = website;
+    public Note(String note) {
+        this.note = note;
 
         LocalDateTime DateObject = LocalDateTime.now();
         DateTimeFormatter FormatObject = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");

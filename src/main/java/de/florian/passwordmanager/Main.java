@@ -89,6 +89,17 @@ public class Main {
             ctx.result("NOT_LOGGED_IN");
         });
 
+        app.post("/add_password/<username>/<password>", ctx -> {
+            if (isLoggedIn(ctx)){
+                String id = ctx.cookie("id");
+                if (id != null) {
+                    ctx.result(addPassword(ctx.pathParam("username"), ctx.pathParam("password"), null, Integer.valueOf(id)));
+                    return;
+                }
+            }
+            ctx.result("NOT_LOGGED_IN");
+        });
+
         app.post("/add_password/<username>/<password>/<website>", ctx -> {
             if (isLoggedIn(ctx)){
                 String id = ctx.cookie("id");
@@ -193,11 +204,11 @@ public class Main {
         JSONObject passwords = new JSONObject();
         for (Account account : accounts) {
             if (account.accountId == id){
+                Integer passwordAmount = account.passwords.size();
                 for (Password password : account.passwords ){
-                    passwords.put("username", password.username);
-                    passwords.put("password", password.password);
-                    passwords.put("website", password.website);
-                    passwords.put("created", String.valueOf(password.creation_time));
+                    String[] data = {password.username,password.password, password.website, password.creation_time};
+                    passwords.put(String.valueOf(passwordAmount),JSONObject.stringToValue(Arrays.toString(data)));
+                    passwordAmount--;
                 }
             }
         }
@@ -209,10 +220,11 @@ public class Main {
         JSONObject notes = new JSONObject();
         for (Account account : accounts) {
             if (account.accountId == id){
-                int i = 1;
-                for (String note : account.notes ){
-                    notes.put(String.valueOf(i), note);
-                    i++;
+                Integer noteAmount = account.notes.size();
+                for (Note note : account.notes ){
+                    String[] data = {note.note, note.creation_time};
+                    notes.put(String.valueOf(noteAmount),JSONObject.stringToValue(Arrays.toString(data)));
+                    noteAmount--;
                 }
             }
         }
@@ -225,7 +237,7 @@ public class Main {
         }
         for (Account account : accounts) {
             if (account.accountId == id){
-                account.notes.add(note);
+                account.notes.add(new Note(note));
                 return "SUCCESSFUL_INSERT";
             }
         }

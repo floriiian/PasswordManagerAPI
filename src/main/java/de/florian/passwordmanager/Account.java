@@ -7,7 +7,7 @@ public class Account {
     public String email;
     public String password;
     public int accountId;
-    public ArrayList<String> notes = new ArrayList<>();
+    public ArrayList<Note> notes = new ArrayList<>();
     public ArrayList<Password > passwords = new ArrayList<>();
     public String sessionKey;
 
@@ -18,7 +18,7 @@ public class Account {
         this.accountId = accountId;
     }
 
-    public void addNote(String note) {
+    public void addNote(Note note) {
         notes.add(note);
     }
 
